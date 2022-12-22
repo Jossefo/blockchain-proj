@@ -1,0 +1,5 @@
+Your Public key (wallet address) : 
+0486c585c7da1222e8a04017f553279e6ec09f959d9e1e21d2e71795e6cedee4e1b2a46ac1c4b49eefc53bcf33e6a2727e2bcb9d145f730263e25dc7693d9a6560
+
+ Your Private key (Keep it safe & private !) : 
+ 695c7100b179d88ebe913ee64f09e0cf7247fbc96d81f8c7d771db2edabedd4d
