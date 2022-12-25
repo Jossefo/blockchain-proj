@@ -1,10 +1,12 @@
-// same as blockchain2 - with additional of mining blocks instead of making new blocks
-
+//same as blockchain4 - with Additional MerkleTree & BloomFilter validation
+//----------------------------------IMPORTS-----------------------------------------
 const SHA256=require('crypto-js/sha256')
 const EC = require('elliptic').ec
 const ec = new EC('secp256k1')
+const { BloomFilter } = require("bloom-filters")
+const { MerkleTree } = require("merkletreejs")
 
-
+//-----------------------------------TRANSACTION----------------------------------------
 class Transaction {
     constructor(fromAddress , toAddress , amount){
         this.fromAddress=fromAddress
@@ -29,6 +31,7 @@ class Transaction {
     }
 
     is_valid(){
+        console.log("Validating transaction")
         if(this.fromAddress === null) {
             return true
         }
@@ -42,6 +45,8 @@ class Transaction {
     }
 }
 
+
+//-----------------------------------BLOCK----------------------------------------
 class Block {
     constructor(time_stamp, transactions, previous_hash=" "){
         this.time_stamp=time_stamp
@@ -49,8 +54,42 @@ class Block {
         this.previous_hash=previous_hash
         this.hash=this.calculate_hash()
         this.nonce=0
+        //bloomfilter(m,k) : m = num of bits (size of the filter) , k = num of hash funcs 
+        this.BloomFilter = new BloomFilter(10,4)
+        this.initializeMerkleTree(transactions)
+
+    }
+
+    initializeMerkleTree(transactions){
+        //first lets map the transactions 
+        const leaves = Object.entries(transactions).map((x) => SHA256(x.signature))
+        // now lets build the merkle tree 
+        this.merkletree = new MerkleTree(leaves,SHA256)
+        this.root = this.merkletree.getRoot().toString('hex')
+    }
+
+    initializeBloomFilter(transactions){
+        for (const tx of transactions){
+            if (tx.fromAddress != null){
+                this.BloomFilter.add(tx.signature)
+            }
+        }
     }
     
+    foundInBF(signature){
+        // is the signature can be found in the bloom filter 
+        //return Bool
+        return this.BloomFilter.has(signature)
+    }
+
+    foundInMT(signature){
+        // is the signature can be verified by merkle tree 
+        // return Bool
+        const leaf = SHA256(signature)
+        const proof = this.merkletree.getProof(leaf)
+        return this.merkletree.verify(proof, leaf, this.root)
+    }
+
     calculate_hash(){
         return SHA256(this.previous_hash + this.time_stamp + JSON.stringify(this.transactions) + this.nonce).toString()
     }
@@ -76,12 +115,13 @@ class Block {
     }
 }
 
+//-----------------------------------BLOCKCHAIN----------------------------------------
 class BlockChain {
     constructor(){
         this.chain=[this.createGenesisBlock()]
         this.difficulty=2
         this.pending_transactions=[]
-        this.mining_reward=90
+        this.mining_reward=100
     }
 
     createGenesisBlock(){
@@ -103,17 +143,47 @@ class BlockChain {
     
     miningPendingTransaction(mining_reward_addr){
         const reward_tx = new Transaction(null,mining_reward_addr,this.mining_reward)
-        this.pending_transactions.push(reward_tx)
-        let block = new Block(Date.now(),this.pending_transactions,this.getLatestBlock().hash)
+        // new transactions array 
+        this.block_transactions = []
+        // every block has 4 transactions 
+        for(let i=1;i<4;i++){
+            if(this.pending_transactions[i] != undefined){
+                //if the transaction is defined 
+                this.block_transactions.push(this.pending_transactions[i])
+            }
+            else{
+                break
+            }
+        }
+        this.block_transactions.push(reward_tx)
+        let block = new Block(Date.now(),this.block_transactions,this.getLatestBlock().hash)
         block.mine_block(this.difficulty)
+        block.initializeBloomFilter(this.block_transactions)
+        block.initializeMerkleTree(this.block_transactions)
         console.log("#####Block successfuly minded ######")
         this.chain.push(block)
-        this.pending_transactions=[]
+        // slicing the pending transactions to 4 
+        this.pending_transactions=this.pending_transactions.slice(4,this.pending_transactions.length)
     }
 
-    // create_transaction(transaction){
-    //     this.pending_transactions.push(transaction)
-    // }
+    lookForTransactionInBlockChain(transaction){
+        valid_transaction = false
+        block_num = 0
+        // for each block in the blockhcain - we first try to found the transaction in the BLOOMFILTER , once it is validated we check in the MERKLETREE 
+        //FALSE - if didnt found the transaction and TRUE if it is found
+        this.chain.forEach((block) => {
+            if(block.foundInBF(transaction)){
+                if(block.foundInMT(transaction)){
+                    console.log("The transaction is in the block. Block :" + i + "- is confirmed.")
+                    valid_transaction = true
+                }
+            }
+            block_num ++ 
+        })
+        if(!valid_transaction){
+            console.log("The transaction is invalid ! Cant be found in the block")
+        }
+    }
 
     add_transaction(transaction){
         if(!transaction.fromAddress || !transaction.toAddress){
@@ -143,6 +213,7 @@ class BlockChain {
     }
 
     isValidate (){
+        console.log("Valdating blocks")
         for(let i=1;i<this.chain.length;i++){
             const current_block=this.chain[i]
             const previous_block=this.chain[i-1]

@@ -1,4 +1,4 @@
-// same as blockchain2 - with additional of mining blocks instead of making new blocks
+// same as blockchain2 - with additional validation for block 
 
 const SHA256=require('crypto-js/sha256')
 

@@ -10,8 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bloom-filters": "^3.0.0",
     "crypto-js": "^4.1.1",
     "elliptic": "^6.5.4",
-    "fully-connected-topology": "^1.1.1"
+    "fully-connected-topology": "^1.1.1",
+    "merkletreejs": "^0.3.9"
   }
 }
