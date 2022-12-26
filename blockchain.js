@@ -37,7 +37,7 @@ class Transaction {
         }
 
         if(!this.signature || this.signature.length === 0 ){
-            throw new Error('No signature in this transaction ')
+            throw new Error('No signature in this transaction')
         } 
 
         const public_key = ec.keyFromPublic(this.fromAddress,'hex')
@@ -92,16 +92,17 @@ class Block {
 
     calculate_hash(){
         return SHA256(this.previous_hash + this.time_stamp + JSON.stringify(this.transactions) + this.nonce).toString()
+        
     }
 
     mine_block(difficulty){
         // Check num of zeros that the hash starts with
-        while(this.hash.substring(0,difficulty) !== Array(difficulty+1).join('0')){
+        while(this.hash.substring(0,difficulty) !== Array(difficulty + 1).join('0')){
             // 
             this.nonce++
             this.hash=this.calculate_hash()
         }
-        console.log('Block mined - Congrads ! -> \n Num of Nonce needed -> ' +this.nonce)
+        console.log('Block mined - Num of Nonce needed -> ' +this.nonce)
             
     }
 
@@ -146,7 +147,7 @@ class BlockChain {
         // new transactions array 
         this.block_transactions = []
         // every block has 4 transactions 
-        for(let i=1;i<4;i++){
+        for(let i=0;i<3;i++){
             if(this.pending_transactions[i] != undefined){
                 //if the transaction is defined 
                 this.block_transactions.push(this.pending_transactions[i])
@@ -155,15 +156,16 @@ class BlockChain {
                 break
             }
         }
+        console.log(this.block_transactions)
         this.block_transactions.push(reward_tx)
-        let block = new Block(Date.now(),this.block_transactions,this.getLatestBlock().hash)
+        const block = new Block(Date.now(),this.block_transactions,this.getLatestBlock().hash)
         block.mine_block(this.difficulty)
         block.initializeBloomFilter(this.block_transactions)
         block.initializeMerkleTree(this.block_transactions)
-        console.log("#####Block successfuly minded ######")
+        console.log("##### Block successfuly minded ######")
         this.chain.push(block)
         // slicing the pending transactions to 4 
-        this.pending_transactions=this.pending_transactions.slice(4,this.pending_transactions.length)
+        this.pending_transactions=this.pending_transactions.slice(3,this.pending_transactions.length)
     }
 
     lookForTransactionInBlockChain(transaction){
@@ -192,6 +194,15 @@ class BlockChain {
 
         if(!transaction.is_valid()){
             throw new Error('No valid - transaction Failed!')
+        }
+
+        if(transaction.amount <= 0){
+            throw new Error('Trasnaction amount should be greater then 0 - transaction Failed!')
+        }
+
+        const curr_balance = this.get_Balance_of_address(transaction.fromAddress)
+        if (curr_balance < transaction.amount){
+            throw new Error('You dont have enough balance in your account - transaction Failed!')
         }
 
         this.pending_transactions.push(transaction)
