@@ -133,17 +133,10 @@ class BlockChain {
         // the latest block is in -> index=len-1
         return this.chain[this.chain.length-1] 
     }
-
-    // addBlock(new_Block){
-    //     // get a new block , calculate his has & push it into the chain 
-    //     new_Block.previous_hash=this.getLatestBlock().hash
-    //     new_Block.mine_block(this.difficulty)
-    //     this.chain.push(new_Block)
-
-    // }
     
     miningPendingTransaction(mining_reward_addr){
-        const reward_tx = new Transaction(null,mining_reward_addr,this.mining_reward)
+        const reward_tx = new Transaction(null,mining_reward_addr,this.mining_reward - 20)
+        const reward_tx_for_burn = new Transaction(null,'burning_wallet', 20)
         // new transactions array 
         this.block_transactions = []
         // every block has 4 transactions 
@@ -158,6 +151,7 @@ class BlockChain {
         }
         console.log(this.block_transactions)
         this.block_transactions.push(reward_tx)
+        this.block_transactions.push(reward_tx_for_burn)
         const block = new Block(Date.now(),this.block_transactions,this.getLatestBlock().hash)
         block.mine_block(this.difficulty)
         block.initializeBloomFilter(this.block_transactions)
@@ -165,7 +159,7 @@ class BlockChain {
         console.log("##### Block successfuly minded ######")
         this.chain.push(block)
         // slicing the pending transactions to 4 
-        this.pending_transactions=this.pending_transactions.slice(3,this.pending_transactions.length)
+        this.pending_transactions=this.pending_transactions.slice(4,this.pending_transactions.length)
     }
 
     lookForTransactionInBlockChain(transaction){
@@ -225,30 +219,30 @@ class BlockChain {
 
     minedCoins(){
         // counts the amount of mined coins and return the amount
-        mined_coins = 0 
+        this.mined_coins = 0 
         for (const block of this.chain){
             for(const transaction of block.transactions){
                 if (transaction.fromAddress === null)
                 {
-                    this.mined_coins+=transaction.amount
+                    this.mined_coins += transaction.amount
                 }
             }
         }
-        return mined_coins
+        return this.mined_coins
     }
 
     burnedCoins(){
         // counts the amount of burned coins and return the amount 
-        burned_coins = 0 
+        this.burned_coins = 0 
         for (const block of this.chain){
             for(const transaction of block.transactions){
-                if (transaction.toAddress === "INSERT_BURN_COINS_WALLET_ADDR_HERE")
+                if (transaction.toAddress === 'burning_wallet')
                 {
                     this.burned_coins+=transaction.amount
                 }
             }
         }
-        return burned_coins
+        return this.burned_coins
     }
 
     isValidate (){

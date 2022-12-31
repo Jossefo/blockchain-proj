@@ -1,3 +1,4 @@
+const { randomInt } = require('bloom-filters/dist/utils.js')
 const {BlockChain,Block, Transaction}=require('./blockchain.js')
 const EC = require('elliptic').ec 
 const ec = new EC('secp256k1')
@@ -14,37 +15,48 @@ const my_wallet_address = my_key.getPublic('hex')
 const address_2 = key_2.getPublic('hex')
 const address_3 = key_3.getPublic('hex')
 
-// lets initilize the blockchain and mine first block
-let JossefCoin = new BlockChain()
-JossefCoin.miningPendingTransaction(my_wallet_address)
+// lets initilize the blockchain and mine first block -- Every wallet has 100 base coins
+let JCoin = new BlockChain()
+JCoin.miningPendingTransaction(my_wallet_address)
+JCoin.miningPendingTransaction(address_2)
+JCoin.miningPendingTransaction(address_3)
 
-// tx - 1
-const tx1 = new Transaction(my_wallet_address, address_2, 50)
-tx1.sing_transaction(my_key)
-JossefCoin.add_transaction(tx1)
+keys_arr = [my_key,key_2,key_3]
+wallet_addr_arr =[my_wallet_address,address_2,address_3]
 
-// mine block
-JossefCoin.miningPendingTransaction(my_wallet_address)
+for(let i=0;i<31;i++){
+    rand_from = randomInt(0,2)
+    rand_to = randomInt(0,2)
+    rand_ammount = randomInt(1,5)
+    const tx = new Transaction(wallet_addr_arr[rand_from], wallet_addr_arr[rand_to],rand_ammount)
+    tx.sing_transaction(keys_arr[rand_from])
+    JCoin.add_transaction(tx)
+}
 
-// tx - 2
-const tx2 = new Transaction(address_2, address_3, 25)
-tx2.sing_transaction(key_2) 
-JossefCoin.add_transaction(tx2)
+JCoin.miningPendingTransaction(my_wallet_address)
 
-// mine block
-JossefCoin.miningPendingTransaction(my_wallet_address)
-
-// tx - 3 
-const tx3 = new Transaction(my_wallet_address, 'address_3', 50)
-tx3.sing_transaction(my_key)
-JossefCoin.add_transaction(tx3)
-
+console.log('------- Balaces of all wallets ------')
+console.log("Balace of 'MyWallet' (Main Wallet) is " + JCoin.get_Balance_of_address(my_wallet_address))
 console.log('--------------')
-console.log("Balace of MyWallet is " + JossefCoin.get_Balance_of_address(my_wallet_address))
+console.log("Balace of 'addr2' (Node1 Wallet) is " + JCoin.get_Balance_of_address(address_2))
 console.log('--------------')
-console.log("Balace of addr2 is " + JossefCoin.get_Balance_of_address(address_2))
+console.log("Balace of 'addr3' (Node3 Wallet) is " + JCoin.get_Balance_of_address(address_3))
 console.log('--------------')
-console.log("Balace of addr3 is " + JossefCoin.get_Balance_of_address(address_3))
+console.log("Balace of all the coins in the blockchain "+ (JCoin.get_Balance_of_address(my_wallet_address) + JCoin.get_Balance_of_address(address_2) + 
+                                                            JCoin.get_Balance_of_address(address_3)+JCoin.get_Balance_of_address('burning_wallet')))
 console.log('--------------')
-console.log("Chain is valid ? " + JossefCoin.isValidate() ? 'Yes' : 'No')
-console.log()
+
+console.log('-------BlockChain Chain is valid ?-------')
+console.log(JCoin.isValidate() ? 'Yes' : 'No')
+
+console.log("Balace of 'burning_wallet' is " + JCoin.get_Balance_of_address('burning_wallet'))
+console.log("Num of coins that burned : " + JCoin.burnedCoins())
+console.log("Num of coins that mined : " + JCoin.minedCoins())
+console.log("######################################################################")
+
+console.log("BloomFilter validation answer -> " + JCoin.getLatestBlock().foundInBF(JCoin.pending_transactions[6]['signature']))
+console.log("MerkleTree validation answer -> " +JCoin.getLatestBlock().foundInMT(JCoin.pending_transactions[6]['signature']))
+
+
+
+
